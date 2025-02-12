@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import FetchChannelTagsView ,SaveCategorizedVideosView,FetchCategorizedVideosByNameView,DeleteCategorizedVideosByNameView,GetCategorizedVideosNamesView,FetchYouTubeVideoDataView
+from .views import FetchChannelTagsView ,SaveCategorizedVideosView,FetchCategorizedVideosByNameView,DeleteCategorizedVideosByNameView,GetCategorizedVideosNamesView,FetchYouTubeVideoDataView,DeleteCategorizedVideosByNameView
 from rest_framework_simplejwt.views import TokenObtainPairView
 urlpatterns = [
     path('fetch-channel-tags/', FetchChannelTagsView.as_view(), name='fetch_channel_tags'),
@@ -8,6 +8,8 @@ urlpatterns = [
     path('delete-categorized-videos/', DeleteCategorizedVideosByNameView.as_view(), name='delete_categorized_videos_by_name'),  # New URL
     path('categorized-video-names/', GetCategorizedVideosNamesView.as_view(), name='categorized_video_names'),
     path("fetch_youtube_data/", FetchYouTubeVideoDataView.as_view(), name="fetch_youtube_data"),
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Login to get access token only
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Login to get access token only
+    path("hide_tag/", DeleteCategorizedVideosByNameView.as_view(), name="fetch_youtube_data"),
+
 
 ]
