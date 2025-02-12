@@ -39,8 +39,29 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'youtupeAPP',
     'corsheaders',  # Add this line
+    'rest_framework',
+    'rest_framework_simplejwt',
 ]
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+from datetime import timedelta
+
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  # Token valid for 1 day
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "ROTATE_REFRESH_TOKENS": False,  # Ensure refresh tokens are not rotated
+    "BLACKLIST_AFTER_ROTATION": False,  # No need for blacklisting
+    "UPDATE_LAST_LOGIN": False,  # Optional: Prevent unnecessary DB updates
+}
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this line
     'django.middleware.security.SecurityMiddleware',

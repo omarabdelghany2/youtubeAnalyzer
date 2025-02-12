@@ -8,8 +8,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
 from .models import CategorizedVideos
-
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
 from collections import defaultdict
+from rest_framework.views import APIView
 import uuid  # For generating unique IDs
 
 def build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth, max_depth, ancestors):
@@ -130,7 +132,11 @@ def fetch_video_tags(api_key, video_id):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class FetchChannelTagsView(View):
+class FetchChannelTagsView(APIView):
+
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
             # Parse JSON from request body
@@ -163,7 +169,6 @@ class FetchChannelTagsView(View):
             video_ids = get_video_ids(api_key, playlist_id)
             if not video_ids:
                 return JsonResponse({"error": "No videos found in the channel."}, status=404)
-            
             # Fetch tags for each video
             video_tags_map = {video_id: fetch_video_tags(api_key, video_id) for video_id in video_ids}
             
@@ -188,7 +193,9 @@ class FetchChannelTagsView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class SaveCategorizedVideosView(View):
+class SaveCategorizedVideosView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
             # Parse the JSON data from the request
@@ -220,7 +227,9 @@ class SaveCategorizedVideosView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')            
-class FetchCategorizedVideosByNameView(View):
+class FetchCategorizedVideosByNameView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
             # Extract the 'name' from the query parameters
@@ -246,7 +255,9 @@ class FetchCategorizedVideosByNameView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
-class DeleteCategorizedVideosByNameView(View):
+class DeleteCategorizedVideosByNameView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
 
 
@@ -277,7 +288,9 @@ class DeleteCategorizedVideosByNameView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class GetCategorizedVideosNamesView(View):
+class GetCategorizedVideosNamesView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
             # Get all the names of the saved categorized videos
@@ -294,7 +307,9 @@ class GetCategorizedVideosNamesView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class FetchYouTubeVideoDataView(View):
+class FetchYouTubeVideoDataView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
             # Parse JSON from request body
