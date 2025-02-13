@@ -408,32 +408,28 @@ class DeleteCategorizedVideosByNameView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-
-
-
-
     def delete(self, request):
         try:
-            # Extract the 'name' from the query parameters
             name = request.GET.get('name')
-            
-            # Ensure 'name' is provided
+
+            # Debugging: Print the name to check if it's received correctly
+            print(f"Received name: {name}")
+
             if not name:
                 return JsonResponse({"error": "Name parameter is required."}, status=400)
-            
-            # Try to retrieve the instance by name
+
             categorized_video_instance = CategorizedVideos.objects.filter(name=name).first()
-            
+
             if not categorized_video_instance:
                 return JsonResponse({"error": "Categorized video not found."}, status=404)
-            
-            # Delete the instance
+
             categorized_video_instance.delete()
-            
+
             return JsonResponse({"message": "Categorized video deleted successfully."}, status=200)
-        
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -512,7 +508,7 @@ class FetchYouTubeVideoDataView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class DeleteCategorizedVideosByNameView(APIView):
+class DeleteCategorizedVideos(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -544,7 +540,7 @@ class DeleteCategorizedVideosByNameView(APIView):
             if "name" not in data or "children" not in data or "tags_to_delete" not in data:
                 return JsonResponse({"error": "Invalid request format."}, status=400)
 
-            tags_to_delete = set(data["tags_to_delete"])  # Use set for faster lookup
+            tags_to_delete = set(tag.strip() for tag in data["tags_to_delete"])  # Removes leading/trailing spaces
             filtered_data = self.remove_tags(data, tags_to_delete)
 
             # Remove "tags_to_delete" before returning response
