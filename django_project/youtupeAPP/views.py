@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
-from .models import CategorizedVideos
+from .models import CategorizedVideos,LastState
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from collections import defaultdict
@@ -70,61 +70,163 @@ import uuid  # For generating unique IDs
 #             processed_tags.add(tag)
 
 #     return structured_hierarchy
-def build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth, max_depth):
-    """Recursively builds the tag hierarchy up to max_depth=3, ensuring no child has the same name as its parent."""
-    if current_depth >= max_depth:
-        return None  # Stop recursion if max depth is reached
+##this is oldone 
+# def build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth, max_depth):
+#     """Recursively builds the tag hierarchy up to max_depth=3, ensuring no child has the same name as its parent."""
+#     if current_depth >= max_depth:
+#         return None  # Stop recursion if max depth is reached
 
-    overlapping_tags = {}
-    for video_id in tag_hierarchy[tag]:
-        for overlapping_tag in video_to_tags[video_id]:
-            if overlapping_tag != tag:  # Prevent self-referencing tags
-                overlapping_tags.setdefault(overlapping_tag, []).append(video_id)
+#     overlapping_tags = {}
+#     for video_id in tag_hierarchy[tag]:
+#         for overlapping_tag in video_to_tags[video_id]:
+#             if overlapping_tag != tag:  # Prevent self-referencing tags
+#                 overlapping_tags.setdefault(overlapping_tag, []).append(video_id)
 
-    children = []
-    for overlapping_tag, overlap_videos in overlapping_tags.items():
-        if overlapping_tag not in processed_tags:
-            child_node = build_hierarchy(
-                overlapping_tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth + 1, max_depth
-            )
-            if child_node:  # Only add if not None
-                children.append(child_node)
-            processed_tags.add(overlapping_tag)
+#     children = []
+#     for overlapping_tag, overlap_videos in overlapping_tags.items():
+#         if overlapping_tag not in processed_tags:
+#             child_node = build_hierarchy(
+#                 overlapping_tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth + 1, max_depth
+#             )
+#             if child_node:  # Only add if not None
+#                 children.append(child_node)
+#             processed_tags.add(overlapping_tag)
 
-    return {
-        "name": tag,
-        "id": tag_ids[tag],  
-        "children": children if children else None,  
-        "videos_id": tag_hierarchy[tag],
-        "value": len(tag_hierarchy[tag])
-    }
+#     return {
+#         "name": tag,
+#         "id": tag_ids[tag],  
+#         "children": children if children else None,  
+#         "videos_id": tag_hierarchy[tag],
+#         "value": len(tag_hierarchy[tag])
+#     }
 
 
-def categorize_videos_by_tags(video_tags_map, max_depth=3):
-    """Categorizes videos by tags into a hierarchical structure up to max_depth=3."""
+# def categorize_videos_by_tags(video_tags_map, max_depth=3):
+#     """Categorizes videos by tags into a hierarchical structure up to max_depth=3."""
+#     tag_hierarchy = defaultdict(list)
+#     video_to_tags = defaultdict(list)
+
+#     # Populate mappings
+#     for video_id, tags in video_tags_map.items():
+#         for tag in tags:
+#             tag_hierarchy[tag].append(video_id)
+#             video_to_tags[video_id].append(tag)
+
+#     structured_hierarchy = {"children": []}
+#     processed_tags = set()
+
+#     # Assign unique IDs to tags
+#     tag_ids = {tag: str(uuid.uuid4()) for tag in tag_hierarchy.keys()}
+
+#     for tag in tag_hierarchy.keys():
+#         if tag not in processed_tags:
+#             node = build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, 1, max_depth)
+#             if node:
+#                 structured_hierarchy["children"].append(node)
+#             processed_tags.add(tag)
+
+#     return structured_hierarchy
+
+
+# def build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth, max_depth):
+#     """Recursively builds the tag hierarchy up to max_depth, ensuring all valid tags are included."""
+#     if current_depth >= max_depth:
+#         return None  # Stop recursion if max depth is reached
+
+#     processed_tags.add(tag)  # ✅ Mark tag as processed immediately to avoid duplicate processing
+
+#     overlapping_tags = {}
+#     for video_id in tag_hierarchy[tag]:
+#         for overlapping_tag in video_to_tags[video_id]:
+#             if overlapping_tag != tag:  # Prevent self-referencing tags
+#                 overlapping_tags.setdefault(overlapping_tag, []).append(video_id)
+
+#     children = []
+#     for overlapping_tag, overlap_videos in overlapping_tags.items():
+#         child_node = build_hierarchy(
+#             overlapping_tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, current_depth + 1, max_depth
+#         )
+#         if child_node:  # ✅ Ensure child nodes are correctly added
+#             children.append(child_node)
+
+#     return {
+#         "name": tag,
+#         "id": tag_ids[tag],
+#         "children": children,  # ✅ Always return an empty list instead of None
+#         "videos_id": tag_hierarchy[tag],
+#         "value": len(tag_hierarchy[tag])
+#     }
+
+# def categorize_videos_by_tags(video_tags_map, max_depth=3):
+#     """Categorizes videos by tags into a hierarchical structure up to max_depth."""
+#     tag_hierarchy = defaultdict(list)
+#     video_to_tags = defaultdict(list)
+
+#     # Populate mappings
+#     for video_id, tags in video_tags_map.items():
+#         for tag in tags:
+#             tag_hierarchy[tag].append(video_id)
+#             video_to_tags[video_id].append(tag)
+
+#     structured_hierarchy = {"children": []}
+#     processed_tags = set()
+
+#     # Assign unique IDs to tags
+#     tag_ids = {tag: str(uuid.uuid4()) for tag in tag_hierarchy.keys()}
+
+#     for tag in tag_hierarchy.keys():
+#         if tag not in processed_tags:
+#             node = build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, 1, max_depth)
+#             if node:
+#                 structured_hierarchy["children"].append(node)
+
+#     return structured_hierarchy
+
+
+
+def categorize_videos_by_tags(video_tags_map):
+    """Categorizes videos into a structured tag hierarchy."""
     tag_hierarchy = defaultdict(list)
     video_to_tags = defaultdict(list)
 
-    # Populate mappings
+    # Populate tag hierarchy and video-to-tags mapping
     for video_id, tags in video_tags_map.items():
         for tag in tags:
             tag_hierarchy[tag].append(video_id)
             video_to_tags[video_id].append(tag)
 
-    structured_hierarchy = {"children": []}
+    structured_hierarchy = {"children": []}  # Ensure correct format for frontend
     processed_tags = set()
 
-    # Assign unique IDs to tags
-    tag_ids = {tag: str(uuid.uuid4()) for tag in tag_hierarchy.keys()}
+    for tag, video_ids in tag_hierarchy.items():
+        if tag in processed_tags:
+            continue
 
-    for tag in tag_hierarchy.keys():
-        if tag not in processed_tags:
-            node = build_hierarchy(tag, tag_hierarchy, video_to_tags, tag_ids, processed_tags, 1, max_depth)
-            if node:
-                structured_hierarchy["children"].append(node)
-            processed_tags.add(tag)
+        overlapping_tags = {}
+        for video_id in video_ids:
+            for overlapping_tag in video_to_tags[video_id]:
+                if overlapping_tag != tag:
+                    overlapping_tags.setdefault(overlapping_tag, []).append(video_id)
 
-    return structured_hierarchy
+        children = []
+        for overlapping_tag, overlap_videos in overlapping_tags.items():
+            children.append({
+                "name": overlapping_tag,
+                "videos_id": overlap_videos,
+                "value": len(overlap_videos),
+                "children": []  # ✅ Ensuring correct structure for frontend
+            })
+            processed_tags.add(overlapping_tag)
+
+        structured_hierarchy["children"].append({
+            "name": tag,
+            "videos_id": video_ids,
+            "value": len(video_ids),
+            "children": children  # ✅ Always provide "children" key to avoid frontend errors
+        })
+        processed_tags.add(tag)
+
+    return structured_hierarchy  # ✅ Returns correct structure for frontend display
 
 
 def resolve_handle_to_channel_url(handle_url, api_key):
@@ -225,58 +327,6 @@ def parse_duration(duration):
     return hours * 3600 + minutes * 60 + seconds
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class FetchChannelTagsView(APIView):
-
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            body = json.loads(request.body)
-            handle = body.get("channel_url")  
-            api_key = "AIzaSyDP03hg1_-sklhoaz0KGA9RHLDwRPaMlHg"  # Replace with your API key
-            
-            if not api_key or not handle:
-                return JsonResponse({"error": "API key or channel handle is missing."}, status=400)
-            
-            handle_url = f"https://www.youtube.com/@{handle}"
-            channel_name = handle
-            full_channel_url = resolve_handle_to_channel_url(handle_url, api_key)
-            if not full_channel_url:
-                return JsonResponse({"error": "Failed to resolve handle to full channel URL."}, status=404)
-            
-            channel_id = full_channel_url.split("channel/")[1]
-            playlist_id = get_uploads_playlist_id(api_key, channel_id)
-            if not playlist_id:
-                return JsonResponse({"error": "Failed to fetch uploads playlist ID."}, status=404)
-            
-            video_ids = get_video_ids(api_key, playlist_id)
-            if not video_ids:
-                return JsonResponse({"error": "No videos found in the channel."}, status=404)
-
-            # ❌ Exclude Shorts
-            filtered_video_ids = get_video_details(api_key, video_ids)
-
-            if not filtered_video_ids:
-                return JsonResponse({"error": "No valid videos (non-Shorts) found."}, status=404)
-            
-            # Fetch tags only for filtered videos
-            video_tags_map = {video_id: fetch_video_tags(api_key, video_id) for video_id in filtered_video_ids}
-            
-            # Categorize videos by tags and add unique IDs
-            categorized_videos = categorize_videos_by_tags(video_tags_map, max_depth=3)
-            
-            response = {
-                "name": channel_name,
-                "children": categorized_videos.get("children", [])
-            }
-            return JsonResponse(response, status=200)
-        
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON body."}, status=400)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
 
 # @method_decorator(csrf_exempt, name='dispatch')
 # class FetchChannelTagsView(APIView):
@@ -341,10 +391,98 @@ class FetchChannelTagsView(APIView):
 #             return JsonResponse({"error": str(e)}, status=500)
 
 
+
+@method_decorator(csrf_exempt, name='dispatch')
+class FetchChannelTagsView(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            body = json.loads(request.body)
+            handle = body.get("channel_url")  
+            api_key = "AIzaSyDP03hg1_-sklhoaz0KGA9RHLDwRPaMlHg"  # Replace with your API key
+            
+            if not api_key or not handle:
+                return JsonResponse({"error": "API key or channel handle is missing."}, status=400)
+            
+            handle_url = f"https://www.youtube.com/@{handle}"
+            channel_name = handle
+            full_channel_url = resolve_handle_to_channel_url(handle_url, api_key)
+            if not full_channel_url:
+                return JsonResponse({"error": "Failed to resolve handle to full channel URL."}, status=404)
+            
+            channel_id = full_channel_url.split("channel/")[1]
+            playlist_id = get_uploads_playlist_id(api_key, channel_id)
+            if not playlist_id:
+                return JsonResponse({"error": "Failed to fetch uploads playlist ID."}, status=404)
+            
+            video_ids = get_video_ids(api_key, playlist_id)
+            if not video_ids:
+                return JsonResponse({"error": "No videos found in the channel."}, status=404)
+
+            # ❌ Exclude Shorts
+            filtered_video_ids = get_video_details(api_key, video_ids)
+
+            if not filtered_video_ids:
+                return JsonResponse({"error": "No valid videos (non-Shorts) found."}, status=404)
+            
+            # Fetch tags only for filtered videos
+            video_tags_map = {video_id: fetch_video_tags(api_key, video_id) for video_id in filtered_video_ids}
+            
+            # Categorize videos by tags and add unique IDs
+            categorized_videos = categorize_videos_by_tags(video_tags_map)
+            
+            response = {
+                "name": channel_name,
+                "children": categorized_videos.get("children", [])
+            }
+            return JsonResponse(response, status=200)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON body."}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class SaveCategorizedVideosView(APIView):
+#     authentication_classes = [JWTAuthentication]
+#     permission_classes = [IsAuthenticated]
+#     def post(self, request):
+#         try:
+#             # Parse the JSON data from the request
+#             body = json.loads(request.body)
+#             name = body.get('name')  # Channel name
+#             children = body.get('children')  # Categorized videos array
+            
+#             # Ensure 'name' and 'children' are provided
+#             if not name or not children:
+#                 return JsonResponse({"error": "Both 'name' and 'children' are required."}, status=400)
+            
+#             # Check if the name is unique
+#             if CategorizedVideos.objects.filter(name=name).exists():
+#                 return JsonResponse({"error": "The 'name' must be unique."}, status=400)
+            
+#             # Save the instance of CategorizedVideos
+#             categorized_video_instance = CategorizedVideos(
+#                 name=name,
+#                 response=json.dumps(children)  # Save the 'children' array as a JSON string
+#             )
+#             categorized_video_instance.save()
+            
+#             return JsonResponse({"message": "Categorized videos saved successfully."}, status=200)
+        
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON body."}, status=400)
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
 class SaveCategorizedVideosView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         try:
             # Parse the JSON data from the request
@@ -366,6 +504,11 @@ class SaveCategorizedVideosView(APIView):
                 response=json.dumps(children)  # Save the 'children' array as a JSON string
             )
             categorized_video_instance.save()
+
+            # Update LastState with the channel name
+            last_state = LastState.get_instance()
+            last_state.channel_name = name
+            last_state.save()
             
             return JsonResponse({"message": "Categorized videos saved successfully."}, status=200)
         
@@ -379,27 +522,33 @@ class SaveCategorizedVideosView(APIView):
 class FetchCategorizedVideosByNameView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         try:
             # Extract the 'name' from the query parameters
             name = request.GET.get('name')
-            
+
             # Ensure 'name' is provided
             if not name:
                 return JsonResponse({"error": "Name parameter is required."}, status=400)
-            
+
             # Try to retrieve the instance by name
             categorized_video_instance = CategorizedVideos.objects.filter(name=name).first()
-            
+
             if not categorized_video_instance:
                 return JsonResponse({"error": "Categorized video not found."}, status=404)
-            
+
+            # Update the LastState model with the new channel name
+            last_state = LastState.get_instance()
+            last_state.channel_name = name  # Update the channel name
+            last_state.save()
+
             # Return the saved categorized videos data as JSON
             return JsonResponse({
                 "name": categorized_video_instance.name,
                 "children": json.loads(categorized_video_instance.response)
             }, status=200)
-        
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
@@ -507,6 +656,53 @@ class FetchYouTubeVideoDataView(APIView):
 
 
 
+# @method_decorator(csrf_exempt, name='dispatch')
+# class DeleteCategorizedVideos(APIView):
+#     authentication_classes = [JWTAuthentication]
+#     permission_classes = [IsAuthenticated]
+
+#     def remove_tags(self, node, tags_to_delete):
+#         """Recursively removes tags and their children"""
+#         if not node:
+#             return None
+
+#         # If current node should be deleted, return None
+#         if node.get("name") in tags_to_delete:
+#             return None
+
+#         # Process children recursively
+#         if "children" in node and isinstance(node["children"], list):
+#             filtered_children = [
+#                 self.remove_tags(child, tags_to_delete)
+#                 for child in node["children"]
+#             ]
+#             node["children"] = [child for child in filtered_children if child]
+
+#         return node
+
+#     def delete(self, request):
+#         try:
+#             # Parse request body
+#             data = json.loads(request.body)
+
+#             # Validate request data
+#             if "name" not in data or "children" not in data or "tags_to_delete" not in data:
+#                 return JsonResponse({"error": "Invalid request format."}, status=400)
+
+#             tags_to_delete = set(tag.strip() for tag in data["tags_to_delete"])  # Removes leading/trailing spaces
+#             filtered_data = self.remove_tags(data, tags_to_delete)
+
+#             # Remove "tags_to_delete" before returning response
+#             if "tags_to_delete" in filtered_data:
+#                 del filtered_data["tags_to_delete"]
+
+#             return JsonResponse(filtered_data, status=200, json_dumps_params={'ensure_ascii': False})
+
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON format."}, status=400)
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class DeleteCategorizedVideos(APIView):
     authentication_classes = [JWTAuthentication]
@@ -543,6 +739,11 @@ class DeleteCategorizedVideos(APIView):
             tags_to_delete = set(tag.strip() for tag in data["tags_to_delete"])  # Removes leading/trailing spaces
             filtered_data = self.remove_tags(data, tags_to_delete)
 
+            # Save excluded tags in LastState
+            last_state = LastState.get_instance()
+            last_state.excluded = list(tags_to_delete)  # Convert set to list for JSONField
+            last_state.save()
+
             # Remove "tags_to_delete" before returning response
             if "tags_to_delete" in filtered_data:
                 del filtered_data["tags_to_delete"]
@@ -551,5 +752,64 @@ class DeleteCategorizedVideos(APIView):
 
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format."}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ReloadLastStateView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def remove_tags(self, node, tags_to_delete):
+        """Recursively removes tags and their children"""
+        if not node:
+            return None
+
+        # If current node should be deleted, return None
+        if node.get("name") in tags_to_delete:
+            return None
+
+        # Process children recursively
+        if "children" in node and isinstance(node["children"], list):
+            filtered_children = [
+                self.remove_tags(child, tags_to_delete)
+                for child in node["children"]
+            ]
+            node["children"] = [child for child in filtered_children if child]
+
+        return node
+
+    def get(self, request):
+        try:
+            # Step 1: Get the LastState instance
+            last_state = LastState.get_instance()
+            channel_name = last_state.channel_name
+            excluded_tags = set(last_state.excluded)  # Convert to set for quick lookup
+
+            # Debugging prints
+            print(f"Channel Name: {channel_name}")
+            print(f"Excluded Tags: {excluded_tags}")
+
+            if not channel_name:
+                return JsonResponse({"error": "No channel name found in LastState."}, status=400)
+
+            # Step 2: Retrieve the categorized videos using channel_name
+            categorized_video_instance = CategorizedVideos.objects.filter(name=channel_name).first()
+
+            if not categorized_video_instance:
+                return JsonResponse({"error": "Categorized video not found."}, status=404)
+
+            # Step 3: Parse and filter the response data
+            categorized_data = {
+                "name": categorized_video_instance.name,
+                "children": json.loads(categorized_video_instance.response)
+            }
+
+            filtered_data = self.remove_tags(categorized_data, excluded_tags)
+
+            return JsonResponse(filtered_data, status=200, json_dumps_params={'ensure_ascii': False})
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
